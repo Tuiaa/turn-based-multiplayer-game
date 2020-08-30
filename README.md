@@ -12,7 +12,7 @@ Tutorial on how to create a turn-based multiplayer game (still WIP). More detail
 ## How to create a game menu
 ### Overview of different components
 
-####UIManager
+#### UIManager
 - Takes care of updating UI using events
 - Updates canvases depending on what's the status of NetworkManager
 
