@@ -5,35 +5,46 @@ using UnityEngine.UI;
 using Photon.Pun;
 using Photon.Realtime;
 
+
+/* TODO */
+/*
+*   - grey out buttons before connection is established
+*   - combine join and create room logic
+*   - why did it take so long for start game button to disappear for joinin player?
+*/
+
+
+public enum NetworkStatusEnum { Connecting, Connected, Disconnected, Default }
+public enum PlayerLobbyStatusEnum { LobbyLeader, JoinedPlayer }
+
 public class NetworkLauncher : MonoBehaviourPunCallbacks
 {
     [Header("General")]
     [SerializeField] private string gameVersion = "1";
     [SerializeField] private byte maxPlayersPerRoom = 2;
 
+    private string _playerName = "";
+    private string _roomName = "";
+
     [Header("Status")]
     [SerializeField] private Text playerStatus;
     [SerializeField] private Text connectionStatus;
     private bool isConnecting = false;
 
-    [Header("Canvases")]
-    [SerializeField] private GameObject _mainMenuCanvas;
-    [SerializeField] private GameObject _createRoomCanvas;
-    [SerializeField] private GameObject _joinRoomCanvas;
-    [SerializeField] private GameObject _connectionStatusCanvas;
+    /* EVENTS */
+    public delegate void NetworkStatusEventHandler(NetworkStatusEnum statusEnum);
+    public static event NetworkStatusEventHandler NetworkStatusChanged;
 
-    [Header("UI")]
-    [SerializeField] private GameObject roomJoinUI;
-    [SerializeField] private GameObject buttonLoadArena;
-    [SerializeField] private GameObject buttonJoinRoom;
-    [SerializeField] private GameObject buttonCreateRoom;
-    [SerializeField] private InputField playerNameField;
-    [SerializeField] private InputField roomNameField;
-    private string playerName = "";
-    private string roomName = "";
+    public delegate void GameInfoEventHandler(string infoMessage);
+    public static event GameInfoEventHandler GameInfo;
 
+    public delegate void GameLobbyEventHandler(PlayerLobbyStatusEnum lobbyEnum);
+    public static event GameLobbyEventHandler PlayerStatusChanged;
+
+    /* UNITY METHODS */
     private void Awake()
     {
+        RegisterEvents();
         PhotonNetwork.AutomaticallySyncScene = true;
     }
 
@@ -42,84 +53,152 @@ public class NetworkLauncher : MonoBehaviourPunCallbacks
         PlayerPrefs.DeleteAll();
         Debug.Log(GameConstants.LOG_CONNECTING_TO_PHOTON);
 
-        roomJoinUI.SetActive(false);
-        buttonLoadArena.SetActive(false);
-
         ConnectToPhoton();
     }
 
-    public void SetPlayerName(string name)
+    private void OnDestroy()
     {
-        playerName = name;
+        UnRegisterEvents();
     }
 
-    public void SetRoomName(string name)
-    {
-        roomName = name;
-    }
-
-    void ConnectToPhoton()
-    {
-        connectionStatus.text = GameConstants.STATUS_CONNECTING;
-        PhotonNetwork.GameVersion = gameVersion;
-        PhotonNetwork.ConnectUsingSettings();
-    }
-
-    public void JoinRoom()
-    {
-        if (PhotonNetwork.IsConnected)
-        {
-            PhotonNetwork.LocalPlayer.NickName = playerName;
-            Debug.Log("PhotonNetwork.IsConnected | Trying to create/Join Room " + roomNameField.text);
-
-            RoomOptions roomOptions = new RoomOptions();
-            roomOptions.MaxPlayers = maxPlayersPerRoom;
-            TypedLobby typedLobby = new TypedLobby(roomName, LobbyType.Default);
-
-            PhotonNetwork.JoinOrCreateRoom(roomName, roomOptions, typedLobby);
-        }
-    }
-    public void LoadArena()
-    {
-        if (PhotonNetwork.CurrentRoom.PlayerCount > 1)
-        {
-            // PhotonNetwork.LoadLevel("MainArena");
-            Debug.Log("Game loaded!");
-        }
-        else
-        {
-            playerStatus.text = "Minimum 2 players required to Load Arena!";
-        }
-    }
-
+    /* PHOTON OVERRIDE METHODS */
     public override void OnConnected()
     {
         base.OnConnected();
 
-        connectionStatus.text = "Connected to Photon!";
-        connectionStatus.color = Color.green;
-        roomJoinUI.SetActive(true);
-        buttonLoadArena.SetActive(false);
+        NetworkStatusChanged?.Invoke(NetworkStatusEnum.Connected);
     }
 
     public override void OnDisconnected(DisconnectCause cause)
     {
-        isConnecting = false;
-        _connectionStatusCanvas.SetActive(true);
-        Debug.Log("Disconnected. Please check your Internet connection.");
+        NetworkStatusChanged?.Invoke(NetworkStatusEnum.Disconnected);
+        GameInfo?.Invoke(GameConstants.ERROR_DISCONNECTED_FROM_PHOTON);
     }
 
     public override void OnJoinedRoom()
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            buttonLoadArena.SetActive(true);
-            buttonJoinRoom.SetActive(false);
-            playerStatus.text = "You are Lobby Leader";
+            PlayerStatusChanged?.Invoke(PlayerLobbyStatusEnum.LobbyLeader);
         }
         else
         {
-            playerStatus.text = "Connected to Lobby";
+            PlayerStatusChanged?.Invoke(PlayerLobbyStatusEnum.JoinedPlayer);
         }
+    }
+
+    /* NETWORK LOGIC */
+    private void ConnectToPhoton()
+    {
+        NetworkStatusChanged?.Invoke(NetworkStatusEnum.Connecting);
+        PhotonNetwork.GameVersion = gameVersion;
+        PhotonNetwork.ConnectUsingSettings();
+    }
+
+    private void CreateRoom()
+    {
+        PhotonNetwork.LocalPlayer.NickName = _playerName;
+        Debug.Log("PhotonNetwork.IsConnected | Trying to create/Join Room " + _roomName);
+
+        RoomOptions roomOptions = new RoomOptions();
+        roomOptions.MaxPlayers = maxPlayersPerRoom;
+        TypedLobby typedLobby = new TypedLobby(_roomName, LobbyType.Default);
+
+        PhotonNetwork.JoinOrCreateRoom(_roomName, roomOptions, typedLobby);
+    }
+
+    private void JoinRoom()
+    {
+        PhotonNetwork.LocalPlayer.NickName = _playerName;
+        Debug.Log("PhotonNetwork.IsConnected | Trying to create/Join Room " + _roomName);
+
+        RoomOptions roomOptions = new RoomOptions();
+        roomOptions.MaxPlayers = maxPlayersPerRoom;
+        TypedLobby typedLobby = new TypedLobby(_roomName, LobbyType.Default);
+
+        PhotonNetwork.JoinOrCreateRoom(_roomName, roomOptions, typedLobby);
+    }
+
+    private void StartGame()
+    {
+        if (PhotonNetwork.CurrentRoom.PlayerCount == 2)
+        {
+            // TRIGGER EVENT FOR STARTING GAME (IN GAME CONTROLLER?)
+            Debug.Log("Game loaded!");
+        }
+        else
+        {
+            GameInfo?.Invoke(GameConstants.ERROR_MORE_PLAYERS_NEEDED);
+        }
+    }
+
+    /* EVENT METHODS */
+    private void OnGameRoomCreated()
+    {
+        if (PhotonNetwork.IsConnected)
+        {
+            CreateRoom();
+        }
+        else
+        {
+            // Trigger error
+        }
+    }
+
+    private void OnGameRoomJoined()
+    {
+        if (PhotonNetwork.IsConnected)
+        {
+            JoinRoom();
+        }
+        else
+        {
+            // Trigger error
+        }
+    }
+
+    private void OnGameStarted()
+    {
+        if (PhotonNetwork.IsConnected)
+        {
+            StartGame();
+        }
+        else
+        {
+            // Trigger error
+        }
+    }
+
+    private void OnPlayerNameUpdated(string playerName)
+    {
+        _playerName = playerName;
+        Debug.Log("player name: " + playerName);
+    }
+
+    private void OnRoomNameUpdated(string roomName)
+    {
+        _roomName = roomName;
+        Debug.Log("room name: " + roomName);
+    }
+
+    /* EVENT REGISTRATIONS */
+    private void RegisterEvents()
+    {
+        UIManager.GameRoomCreated += OnGameRoomCreated;
+        UIManager.GameRoomJoined += OnGameRoomJoined;
+        UIManager.GameStarted += OnGameStarted;
+
+        UIManager.PlayerNameUpdated += OnPlayerNameUpdated;
+        UIManager.RoomNameUpdated += OnRoomNameUpdated;
+    }
+
+    private void UnRegisterEvents()
+    {
+        UIManager.GameRoomCreated -= OnGameRoomCreated;
+        UIManager.GameRoomJoined -= OnGameRoomJoined;
+        UIManager.GameStarted -= OnGameStarted;
+
+        UIManager.PlayerNameUpdated -= OnPlayerNameUpdated;
+        UIManager.RoomNameUpdated -= OnRoomNameUpdated;
     }
 }
