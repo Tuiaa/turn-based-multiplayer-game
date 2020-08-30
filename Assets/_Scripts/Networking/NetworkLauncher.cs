@@ -7,26 +7,30 @@ using Photon.Realtime;
 
 public class NetworkLauncher : MonoBehaviourPunCallbacks
 {
-    /* GENERAL */
+    [Header("General")]
     [SerializeField] private string gameVersion = "1";
-    private byte maxPlayersPerRoom = 2;
+    [SerializeField] private byte maxPlayersPerRoom = 2;
 
-    /* Names */
-    private InputField playerNameField;
-    private string playerName = "";
-    private InputField roomNameField;
-    private string roomName = "";
-
-    /* Status */
+    [Header("Status")]
+    [SerializeField] private Text playerStatus;
+    [SerializeField] private Text connectionStatus;
     private bool isConnecting = false;
-    public Text playerStatus;
-    public Text connectionStatus;
 
-    /* UI */
-    private GameObject controlPanel;
-    public GameObject roomJoinUI;
-    public GameObject buttonLoadArena;
-    public GameObject buttonJoinRoom;
+    [Header("Canvases")]
+    [SerializeField] private GameObject _mainMenuCanvas;
+    [SerializeField] private GameObject _createRoomCanvas;
+    [SerializeField] private GameObject _joinRoomCanvas;
+    [SerializeField] private GameObject _connectionStatusCanvas;
+
+    [Header("UI")]
+    [SerializeField] private GameObject roomJoinUI;
+    [SerializeField] private GameObject buttonLoadArena;
+    [SerializeField] private GameObject buttonJoinRoom;
+    [SerializeField] private GameObject buttonCreateRoom;
+    [SerializeField] private InputField playerNameField;
+    [SerializeField] private InputField roomNameField;
+    private string playerName = "";
+    private string roomName = "";
 
     private void Awake()
     {
@@ -57,6 +61,8 @@ public class NetworkLauncher : MonoBehaviourPunCallbacks
     void ConnectToPhoton()
     {
         connectionStatus.text = GameConstants.STATUS_CONNECTING;
+        PhotonNetwork.GameVersion = gameVersion;
+        PhotonNetwork.ConnectUsingSettings();
     }
 
     public void JoinRoom()
@@ -77,7 +83,8 @@ public class NetworkLauncher : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.CurrentRoom.PlayerCount > 1)
         {
-            PhotonNetwork.LoadLevel("MainArena");
+            // PhotonNetwork.LoadLevel("MainArena");
+            Debug.Log("Game loaded!");
         }
         else
         {
@@ -98,7 +105,7 @@ public class NetworkLauncher : MonoBehaviourPunCallbacks
     public override void OnDisconnected(DisconnectCause cause)
     {
         isConnecting = false;
-        controlPanel.SetActive(true);
+        _connectionStatusCanvas.SetActive(true);
         Debug.Log("Disconnected. Please check your Internet connection.");
     }
 
