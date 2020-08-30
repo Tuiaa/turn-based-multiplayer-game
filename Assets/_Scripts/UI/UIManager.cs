@@ -15,6 +15,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject _createGameRoomButton;
     [SerializeField] private GameObject _joinGameRoomButton;
     [SerializeField] private GameObject _startGameButton;
+    [SerializeField] private Button _createGameMainMenuButton;
+    [SerializeField] private Button _joinGameMainMenuButton;
 
     [Header("UI")]
     [SerializeField] private InputField _joinplayerNameField;
@@ -24,7 +26,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Text _networkStatusText;
     [SerializeField] private Text _infoStatusText;
 
-    // Events
+    /* Events */
     public delegate void GameRoomCreatedEventHandler();
     public static event GameRoomCreatedEventHandler GameRoomCreated;
 
@@ -46,6 +48,12 @@ public class UIManager : MonoBehaviour
         RegisterEvents();
     }
 
+    private void Start()
+    {
+        _infoStatusText.text = GameConstants.LOG_CONNECTING_TO_PHOTON;
+        DisableMainMenuButtons();
+    }
+
     private void OnDestroy()
     {
         UnRegisterEvents();
@@ -64,6 +72,18 @@ public class UIManager : MonoBehaviour
     {
         DisableAllCanvases();
         canvas.SetActive(true);
+    }
+
+    private void SetMainMenuButtonsInteractable()
+    {
+        _createGameMainMenuButton.interactable = true;
+        _joinGameMainMenuButton.interactable = true;
+    }
+
+    private void DisableMainMenuButtons()
+    {
+        _createGameMainMenuButton.interactable = false;
+        _joinGameMainMenuButton.interactable = false;
     }
 
     /*  UI EVENTS */
@@ -127,6 +147,8 @@ public class UIManager : MonoBehaviour
                 break;
             case NetworkStatusEnum.Connected:
                 _networkStatusText.text = GameConstants.STATUS_CONNECTED;
+                _infoStatusText.text = "";
+                SetMainMenuButtonsInteractable();
                 break;
             case NetworkStatusEnum.Disconnected:
                 _networkStatusText.text = GameConstants.STATUS_DISCONNECTED;
@@ -146,7 +168,7 @@ public class UIManager : MonoBehaviour
                 _infoStatusText.text = GameConstants.PLAYER_STATUS_LOBBY_LEADER;
                 break;
             case PlayerLobbyStatusEnum.JoinedPlayer:
-                _infoStatusText.text = GameConstants.PLAYR_STATUS_JOINED_PLAYER;
+                _infoStatusText.text = GameConstants.PLAYER_STATUS_JOINED_PLAYER;
                 _startGameButton.SetActive(false);
                 break;
             default:

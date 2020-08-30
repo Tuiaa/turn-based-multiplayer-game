@@ -4566,6 +4566,8 @@ MonoBehaviour:
   _createGameRoomButton: {fileID: 1410241885}
   _joinGameRoomButton: {fileID: 1377734061}
   _startGameButton: {fileID: 1195920155}
+  _createGameMainMenuButton: {fileID: 2076268510}
+  _joinGameMainMenuButton: {fileID: 740776164}
   _joinplayerNameField: {fileID: 1693350295}
   _joinroomNameField: {fileID: 1591057749}
   _createplayerNameField: {fileID: 95794430}

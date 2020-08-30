@@ -9,7 +9,7 @@ public class GameConstants
     public const string STATUS_CONNECTED = "Connected!";
     public const string STATUS_DISCONNECTED = "Disconnected.";
     public const string PLAYER_STATUS_LOBBY_LEADER = "You are a lobby leader!";
-    public const string PLAYR_STATUS_JOINED_PLAYER = "You joined someone elses room!";
+    public const string PLAYER_STATUS_JOINED_PLAYER = "You joined someone elses room!";
 
     /* Error Messages */
     public const string ERROR_MORE_PLAYERS_NEEDED = "Someone else needs to join the room before the game can be started!";
