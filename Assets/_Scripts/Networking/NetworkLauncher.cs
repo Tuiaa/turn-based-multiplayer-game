@@ -6,9 +6,8 @@ using Photon.Pun;
 using Photon.Realtime;
 
 
-/* TODO */
-/*
-*   - grey out buttons before connection is established
+/* TODO
+*
 *   - combine join and create room logic
 *   - why did it take so long for start game button to disappear for joinin player?
 */
@@ -40,6 +39,9 @@ public class NetworkLauncher : MonoBehaviourPunCallbacks
 
     public delegate void GameLobbyEventHandler(PlayerLobbyStatusEnum lobbyEnum);
     public static event GameLobbyEventHandler PlayerStatusChanged;
+
+    public delegate void OnlinePlayersEventHandler(string[] OnlinePlayers);
+    public static event OnlinePlayersEventHandler OnlinePlayers;
 
     /* UNITY METHODS */
     private void Awake()
@@ -95,7 +97,7 @@ public class NetworkLauncher : MonoBehaviourPunCallbacks
         PhotonNetwork.ConnectUsingSettings();
     }
 
-    private void CreateRoom()
+    private void CreateOrJoinRoom()
     {
         PhotonNetwork.LocalPlayer.NickName = _playerName;
         Debug.Log("PhotonNetwork.IsConnected | Trying to create/Join Room " + _roomName);
@@ -105,18 +107,7 @@ public class NetworkLauncher : MonoBehaviourPunCallbacks
         TypedLobby typedLobby = new TypedLobby(_roomName, LobbyType.Default);
 
         PhotonNetwork.JoinOrCreateRoom(_roomName, roomOptions, typedLobby);
-    }
-
-    private void JoinRoom()
-    {
-        PhotonNetwork.LocalPlayer.NickName = _playerName;
-        Debug.Log("PhotonNetwork.IsConnected | Trying to create/Join Room " + _roomName);
-
-        RoomOptions roomOptions = new RoomOptions();
-        roomOptions.MaxPlayers = maxPlayersPerRoom;
-        TypedLobby typedLobby = new TypedLobby(_roomName, LobbyType.Default);
-
-        PhotonNetwork.JoinOrCreateRoom(_roomName, roomOptions, typedLobby);
+        Debug.Log("online players: " + PhotonNetwork.PlayerList.ToString());
     }
 
     private void StartGame()
@@ -137,19 +128,7 @@ public class NetworkLauncher : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsConnected)
         {
-            CreateRoom();
-        }
-        else
-        {
-            // Trigger error
-        }
-    }
-
-    private void OnGameRoomJoined()
-    {
-        if (PhotonNetwork.IsConnected)
-        {
-            JoinRoom();
+            CreateOrJoinRoom();
         }
         else
         {
@@ -185,7 +164,6 @@ public class NetworkLauncher : MonoBehaviourPunCallbacks
     private void RegisterEvents()
     {
         UIManager.GameRoomCreated += OnGameRoomCreated;
-        UIManager.GameRoomJoined += OnGameRoomJoined;
         UIManager.GameStarted += OnGameStarted;
 
         UIManager.PlayerNameUpdated += OnPlayerNameUpdated;
@@ -195,7 +173,6 @@ public class NetworkLauncher : MonoBehaviourPunCallbacks
     private void UnRegisterEvents()
     {
         UIManager.GameRoomCreated -= OnGameRoomCreated;
-        UIManager.GameRoomJoined -= OnGameRoomJoined;
         UIManager.GameStarted -= OnGameStarted;
 
         UIManager.PlayerNameUpdated -= OnPlayerNameUpdated;

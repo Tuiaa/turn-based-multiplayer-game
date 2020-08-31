@@ -7,31 +7,28 @@ public class UIManager : MonoBehaviour
 {
     [Header("Canvases")]
     [SerializeField] private GameObject _mainMenuCanvas;
-    [SerializeField] private GameObject _createGameRoomCanvas;
-    [SerializeField] private GameObject _joinGameRoomCanvas;
+    [SerializeField] private GameObject _createOrJoinGameRoomCanvas;
     [SerializeField] private GameObject _gameRoomCreatedCanvas;
 
     [Header("Buttons")]
-    [SerializeField] private GameObject _createGameRoomButton;
-    [SerializeField] private GameObject _joinGameRoomButton;
+    [SerializeField] private GameObject _createOrJoinGameRoomButton;
     [SerializeField] private GameObject _startGameButton;
-    [SerializeField] private Button _createGameMainMenuButton;
-    [SerializeField] private Button _joinGameMainMenuButton;
+    [SerializeField] private Button _createOrJoinGameMainMenuButton;
 
     [Header("UI")]
-    [SerializeField] private InputField _joinplayerNameField;
-    [SerializeField] private InputField _joinroomNameField;
-    [SerializeField] private InputField _createplayerNameField;
-    [SerializeField] private InputField _createroomNameField;
+    [SerializeField] private InputField _playerNameField;
+    private string _playerName;
+    [SerializeField] private InputField _roomNameField;
+    private string _roomName;
     [SerializeField] private Text _networkStatusText;
     [SerializeField] private Text _infoStatusText;
+    [SerializeField] private Text _roomCreatedRoomNameText;
+    [SerializeField] private Text[] _playersOnlineInRoomText;
+    private string[] _playersOnlineInRoom;
 
     /* Events */
     public delegate void GameRoomCreatedEventHandler();
     public static event GameRoomCreatedEventHandler GameRoomCreated;
-
-    public delegate void GameRoomJoinedEventHandler();
-    public static event GameRoomJoinedEventHandler GameRoomJoined;
 
     public delegate void GameStartedEventHandler();
     public static event GameStartedEventHandler GameStarted;
@@ -63,8 +60,7 @@ public class UIManager : MonoBehaviour
     private void DisableAllCanvases()
     {
         _mainMenuCanvas.SetActive(false);
-        _createGameRoomCanvas.SetActive(false);
-        _joinGameRoomCanvas.SetActive(false);
+        _createOrJoinGameRoomCanvas.SetActive(false);
         _gameRoomCreatedCanvas.SetActive(false);
     }
 
@@ -76,40 +72,28 @@ public class UIManager : MonoBehaviour
 
     private void SetMainMenuButtonsInteractable()
     {
-        _createGameMainMenuButton.interactable = true;
-        _joinGameMainMenuButton.interactable = true;
+        _createOrJoinGameMainMenuButton.interactable = true;
     }
 
     private void DisableMainMenuButtons()
     {
-        _createGameMainMenuButton.interactable = false;
-        _joinGameMainMenuButton.interactable = false;
+        _createOrJoinGameMainMenuButton.interactable = false;
     }
 
     /*  UI EVENTS */
 
-    public void CreateGameButtonClicked()
+    public void CreateOrJoinGameButtonClicked()
     {
-        SetCanvasActiveAndDisableOthers(_createGameRoomCanvas);
+        SetCanvasActiveAndDisableOthers(_createOrJoinGameRoomCanvas);
+        _infoStatusText.text = GameConstants.INFO_CREATE_OR_JOIN_ROOM;
     }
 
-    public void JoinGameButtonClicked()
-    {
-        SetCanvasActiveAndDisableOthers(_joinGameRoomCanvas);
-    }
-
-    public void CreateRoomButtonClicked()
+    public void CreateOrJoinRoomButtonClicked()
     {
         // NULL CHECK?
         GameRoomCreated?.Invoke();
         SetCanvasActiveAndDisableOthers(_gameRoomCreatedCanvas);
-    }
-
-    public void JoinRoomButtonClicked()
-    {
-        // NULL CHECK?
-        GameRoomJoined?.Invoke();
-        SetCanvasActiveAndDisableOthers(_gameRoomCreatedCanvas);
+        _roomCreatedRoomNameText.text = "Room name: " + _roomName;
     }
 
     public void StartGameButtonClicked()
@@ -117,29 +101,25 @@ public class UIManager : MonoBehaviour
         GameStarted?.Invoke();
     }
 
-    public void SetPlayerNameCreate()
+    public void SetPlayerName()
     {
-        PlayerNameUpdated?.Invoke(_createplayerNameField.text);
+        _playerName = _playerNameField.text;
+        PlayerNameUpdated?.Invoke(_playerName);
     }
 
-    public void SetPlayerNameJoin()
+    public void SetRoomName()
     {
-        PlayerNameUpdated?.Invoke(_joinplayerNameField.text);
-    }
-
-    public void SetRoomNameCreate()
-    {
-        RoomNameUpdated?.Invoke(_createroomNameField.text);
-    }
-
-    public void SetRoomNameJoin()
-    {
-        RoomNameUpdated?.Invoke(_joinroomNameField.text);
+        _roomName = _roomNameField.text;
+        RoomNameUpdated?.Invoke(_roomName);
     }
 
     /*  EVENT METHODS  */
     private void OnNetworkStatusChanged(NetworkStatusEnum statusEnum)
     {
+        if (_networkStatusText == null)
+        {
+            return;
+        }
         switch (statusEnum)
         {
             case NetworkStatusEnum.Connecting:
